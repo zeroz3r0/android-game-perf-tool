@@ -2,31 +2,19 @@ package com.gameperf.plugin.ui
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.w.ToolWindow
-import com.intellij.openapi.w.ToolWindowManager
+import com.intellij.openapi.w.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 
-class GamePerfToolWindowFactory {
+class GamePerfToolWindowFactory : ToolWindowFactory {
     
-    companion object {
-        const val TOOL_WINDOW_ID = "GamePerformance"
-        
-        fun showToolWindow(project: Project) {
-            val toolWindowManager = ToolWindowManager.getInstance(project)
-            val toolWindow = toolWindowManager.getToolWindow(TOOL_WINDOW_ID)
-            toolWindow?.show()
-        }
+    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+        val contentFactory = ContentFactory.getInstance()
+        val gamePerfPanel = GamePerfPanel(project)
+        val content = contentFactory.createContent(gamePerfPanel, "Game Performance", false)
+        toolWindow.contentManager.addContent(content)
     }
     
-    fun createToolWindow(project: Project): ToolWindow {
-        val toolWindowManager = ToolWindowManager.getInstance(project)
-        val toolWindow = toolWindowManager.registerToolWindow(TOOL_WINDOW_ID) {
-            GamePerfToolWindowContent()
-        }
-        
-        return toolWindow
+    override fun shouldBeAvailable(project: Project): Boolean {
+        return true
     }
-}
-
-class GamePerfToolWindowContent {
-    // Placeholder - will be implemented in Phase 8
 }

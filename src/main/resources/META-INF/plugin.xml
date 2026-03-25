@@ -1,26 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<plugin xmlns="http://www.jetbrains.org/intellij/schema/plugin">
+<plugin xmlns="http://www.jetbrains.org/intellij/schema/plugin"
+        xmlns:compatibility="http://www.jetbrains.org/intellij/schema/plugin-compatibility">
+    
     <id>com.gameperf.plugin</id>
     <name>Game Performance Tool</name>
     <version>0.1.0</version>
     <vendor>GamePerf</vendor>
     <description>Android Studio plugin for measuring game performance - FPS, memory, CPU, and log analysis</description>
     
-    <depends>com.android.tools.plugins.android-profiler</depends>
-    <depends>org.jetbrains.android</depends>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
+    
+    <idea-version since-build="241" until-build="243.*"/>
     
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="GamePerformance" 
                     anchor="bottom" 
-                    factoryClass="com.gameperf.plugin.ui.GamePerfToolWindowFactory"/>
+                    factoryClass="com.gameperf.plugin.GamePerfToolWindowFactory"/>
     </extensions>
     
     <actions>
-        <action id="GamePerfPlugin.ConnectDevice" 
-                class="com.gameperf.plugin.core.ConnectDeviceAction"
-                text="Connect Device"
-                description="Connect to Android device via ADB">
-            <add-to-group group-id="DeviceControlsMenu"/>
+        <action id="GamePerfPlugin.ShowWindow" 
+                class="com.gameperf.plugin.GamePerfPlugin"
+                text="Show Game Performance"
+                description="Show Game Performance Tool Window">
+            <add-to-group group-id="MainMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl alt G"/>
         </action>
     </actions>
+    
+    <applicationListeners>
+        <listener class="com.gameperf.plugin.GamePerfPluginListener"
+                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+    </applicationListeners>
 </plugin>
