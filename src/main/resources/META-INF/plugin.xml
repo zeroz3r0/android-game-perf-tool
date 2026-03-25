@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://www.jetbrains.org/intellij/schema/plugin">
+    <id>com.gameperf.plugin</id>
+    <name>Game Performance Tool</name>
+    <version>0.1.0</version>
+    <vendor>GamePerf</vendor>
+    <description>Android Studio plugin for measuring game performance - FPS, memory, CPU, and log analysis</description>
+    
+    <depends>com.android.tools.plugins.android-profiler</depends>
+    <depends>org.jetbrains.android</depends>
+    
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="GamePerformance" 
+                    anchor="bottom" 
+                    factoryClass="com.gameperf.plugin.ui.GamePerfToolWindowFactory"/>
+    </extensions>
+    
+    <actions>
+        <action id="GamePerfPlugin.ConnectDevice" 
+                class="com.gameperf.plugin.core.ConnectDeviceAction"
+                text="Connect Device"
+                description="Connect to Android device via ADB">
+            <add-to-group group-id="DeviceControlsMenu"/>
+        </action>
+    </actions>
+</plugin>

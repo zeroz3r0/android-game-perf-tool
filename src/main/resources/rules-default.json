@@ -1,0 +1,47 @@
+{
+  "rules": [
+    {
+      "id": "fps_detection",
+      "name": "FPS Detection",
+      "pattern": "FPS[:\\s]+(\\d+\\.?\\d*)",
+      "metricType": "FPS",
+      "severity": "INFO"
+    },
+    {
+      "id": "frame_time_detection",
+      "name": "Frame Time Detection", 
+      "pattern": "(?:Frame[\\s-]?time|frame)[:\\s]+(\\d+\\.?\\d*)\\s*ms?",
+      "metricType": "FRAME_TIME",
+      "severity": "INFO"
+    },
+    {
+      "id": "memory_detection",
+      "name": "Memory Detection",
+      "pattern": "(?:Memory|Mem)[:\\s]+(\\d+\\.?\\d*)\\s*(MB|GB|M)?",
+      "metricType": "MEMORY",
+      "severity": "INFO"
+    },
+    {
+      "id": "low_fps_warning",
+      "name": "Low FPS Warning",
+      "pattern": "FPS[:\\s]+(\\d+)",
+      "metricType": "FPS",
+      "severity": "WARNING",
+      "condition": "value < 30"
+    },
+    {
+      "id": "gc_pause",
+      "name": "GC Pause Detection",
+      "pattern": "GC_[A-Z_]+\\s+\\d+ms",
+      "metricType": "FRAME_TIME",
+      "severity": "WARNING"
+    },
+    {
+      "id": "frame_jank",
+      "name": "Frame Jank Detection",
+      "pattern": "Choreographer.*skip.*\\d+",
+      "metricType": "FRAME_TIME",
+      "severity": "ERROR"
+    }
+  ]
+}
