@@ -39,6 +39,18 @@ class ReportGenerator(
     }
     
     fun toJson(report: PerformanceReport): String {
+        val warningsList = if (report.warnings.isNotEmpty()) {
+            report.warnings.joinToString(",", "[", "]") { "\"$it\"" }
+        } else {
+            "[]"
+        }
+        
+        val errorsList = if (report.errors.isNotEmpty()) {
+            report.errors.joinToString(",", "[", "]") { "\"$it\"" }
+        } else {
+            "[]"
+        }
+        
         return """
         {
             "deviceId": "${report.deviceId}",
@@ -52,13 +64,30 @@ class ReportGenerator(
             "memory": {
                 "averageMb": ${report.averageMemory}
             },
-            "warnings": ${report.warnings.map { "\"$it\"" }},
-            "errors": ${report.errors.map { "\"$it\"" }}
+            "warnings": $warningsList,
+            "errors": $errorsList
         }
         """.trimIndent()
     }
     
     fun toMarkdown(report: PerformanceReport): String {
+        val avgFps = report.averageFps?.let { "%.2f".format(it) } ?: "N/A"
+        val minFps = report.minFps?.let { "%.2f".format(it) } ?: "N/A"
+        val maxFps = report.maxFps?.let { "%.2f".format(it) } ?: "N/A"
+        val avgMem = report.averageMemory?.let { "%.2f MB".format(it) } ?: "N/A"
+        
+        val warningsSection = if (report.warnings.isNotEmpty()) {
+            "### Warnings\n${report.warnings.joinToString("\n") { "- $it" }}\n"
+        } else {
+            "### Warnings\nNone\n"
+        }
+        
+        val errorsSection = if (report.errors.isNotEmpty()) {
+            "### Errors\n${report.errors.joinToString("\n") { "- $it" }}\n"
+        } else {
+            "### Errors\nNone\n"
+        }
+        
         return """
 # Performance Report
 
@@ -66,17 +95,17 @@ class ReportGenerator(
 **Generated**: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(java.util.Date(report.timestamp))}
 
 ## FPS Analysis
-- **Average**: ${report.averageFps?.let { "%.2f".format(it) } ?: "N/A"}
-- **Min**: ${report.minFps?.let { "%.2f".format(it) } ?: "N/A"}
-- **Max**: ${report.maxFps?.let { "%.2f".format(it) } ?: "N/A"}
+- **Average**: $avgFps
+- **Min**: $minFps
+- **Max**: $maxFps
 - **Frame Drops**: ${report.frameDrops}
 
 ## Memory
-- **Average**: ${report.averageMemory?.let { "%.2f MB".format(it) } ?: "N/A"}
+- **Average**: $avgMem
 
 ## Issues
-${if (report.errors.isNotEmpty()) "### Errors\n${report.errors.joinToString("\n") { "- $it" }}"} else "### Errors\nNone"}
-${if (report.warnings.isNotEmpty()) "### Warnings\n${report.warnings.joinToString("\n") { "- $it" }}"} else "### Warnings\nNone"}
+$errorsSection
+$warningsSection
         """.trimIndent()
     }
 }

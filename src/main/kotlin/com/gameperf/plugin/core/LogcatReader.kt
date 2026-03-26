@@ -37,7 +37,7 @@ class LogcatReader(
         
         executor.execute {
             val reader = BufferedReader(InputStreamReader(process!!.inputStream))
-            var line: String?
+            var line: String? = ""
             
             while (isRunning && reader.readLine().also { line = it } != null) {
                 line?.let { parseLogEntry(it) }
@@ -51,7 +51,6 @@ class LogcatReader(
     }
     
     private fun parseLogEntry(line: String): LogEntry? {
-        // Example: 01-15 12:34:56.789  I/Tag  Message
         val pattern = Regex("(\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\s+(\\w)/(\\w+)\\s+(.*)")
         val match = pattern.find(line) ?: return null
         

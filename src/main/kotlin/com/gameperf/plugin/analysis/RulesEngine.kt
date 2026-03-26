@@ -3,6 +3,7 @@ package com.gameperf.plugin.analysis
 import com.gameperf.plugin.core.LogEntry
 import com.gameperf.plugin.core.Metric
 import com.gameperf.plugin.core.MetricType
+import com.google.gson.Gson
 
 data class Rule(
     val id: String,
@@ -22,14 +23,55 @@ data class RuleMatch(
     val logEntry: LogEntry
 )
 
+private data class RuleJson(
+    val id: String,
+    val name: String,
+    val pattern: String,
+    val metricType: String,
+    val severity: String,
+    val condition: String? = null
+)
+
+private data class RulesFileJson(
+    val rules: List<RuleJson>
+)
+
 class RulesEngine {
     
     private val rules = mutableListOf<Rule>()
     private val compiledPatterns = mutableMapOf<String, Regex>()
     
     fun loadRulesFromJson(json: String) {
-        // Placeholder - will be implemented in Phase 6
-        // Parse JSON and populate rules list
+        val gson = Gson()
+        val rulesFile = gson.fromJson(json, RulesFileJson::class.java) ?: return
+        
+        for (ruleJson in rulesFile.rules) {
+            val metricType = try {
+                MetricType.valueOf(ruleJson.metricType)
+            } catch (e: IllegalArgumentException) {
+                continue
+            }
+            
+            val severity = try {
+                Severity.valueOf(ruleJson.severity)
+            } catch (e: IllegalArgumentException) {
+                Severity.INFO
+            }
+            
+            addRule(Rule(
+                id = ruleJson.id,
+                name = ruleJson.name,
+                pattern = ruleJson.pattern,
+                metricType = metricType,
+                severity = severity
+            ))
+        }
+    }
+    
+    fun loadDefaultRules() {
+        val stream = javaClass.classLoader.getResourceAsStream("rules-default.json") ?: return
+        val json = stream.bufferedReader().use { it.readText() }
+        loadRulesFromJson(json)
     }
     
     fun addRule(rule: Rule) {

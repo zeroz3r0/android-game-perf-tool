@@ -1,23 +1,23 @@
 package com.gameperf.plugin.ui
 
 import com.gameperf.plugin.core.AdbConnector
-import javax.swing.*
+import com.gameperf.plugin.core.AndroidDevice
 import java.awt.*
+import javax.swing.*
 
 class DevicePanel : JPanel() {
     
     private val adbConnector = AdbConnector()
-    private val deviceList = JList<DeviceInfo>()
+    private val deviceList = JList<AndroidDevice>()
     private val refreshButton = JButton("Refresh")
     private val statusLabel = JLabel("No device connected")
     
-    var onDeviceSelected: ((DeviceInfo) -> Unit)? = null
+    var onDeviceSelected: ((AndroidDevice) -> Unit)? = null
     
     init {
         layout = BorderLayout(5, 5)
         border = BorderFactory.createTitledBorder("Devices")
         
-        // Device list
         deviceList.selectionMode = ListSelectionModel.SINGLE_SELECTION
         deviceList.addListSelectionListener {
             if (!it.valueIsAdjusting) {
@@ -29,7 +29,6 @@ class DevicePanel : JPanel() {
         
         add(JScrollPane(deviceList), BorderLayout.CENTER)
         
-        // Bottom panel with refresh
         val bottomPanel = JPanel(BorderLayout(5, 5))
         bottomPanel.add(refreshButton, BorderLayout.NORTH)
         bottomPanel.add(statusLabel, BorderLayout.SOUTH)
@@ -54,18 +53,9 @@ class DevicePanel : JPanel() {
             statusLabel.text = "${devices.size} device(s) found"
             statusLabel.foreground = Color.GREEN
             
-            val deviceInfoList = devices.map { dev ->
-                DeviceInfo(
-                    id = dev.id,
-                    name = dev.name,
-                    model = dev.model,
-                    sdkVersion = dev.sdkVersion,
-                    isEmulator = dev.isEmulator
-                )
-            }
-            deviceList.model = DefaultListModel<DeviceInfo>().apply {
-                deviceInfoList.forEach { addElement(it) }
-            }
+            val model = DefaultListModel<AndroidDevice>()
+            devices.forEach { model.addElement(it) }
+            deviceList.model = model
         }
     }
 }

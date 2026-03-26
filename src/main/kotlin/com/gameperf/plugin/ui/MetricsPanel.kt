@@ -1,9 +1,13 @@
 package com.gameperf.plugin.ui
 
+import com.gameperf.plugin.core.AndroidDevice
 import com.gameperf.plugin.core.Metric
 import com.gameperf.plugin.core.MetricType
 import com.gameperf.plugin.core.MetricsExtractor
 import com.gameperf.plugin.core.ReportGenerator
+import com.gameperf.plugin.analysis.RulesEngine
+import com.gameperf.plugin.analysis.RuleMatch
+import com.gameperf.plugin.analysis.Severity
 import java.awt.*
 import javax.swing.*
 import javax.swing.table.DefaultTableModel
@@ -11,34 +15,31 @@ import javax.swing.table.DefaultTableModel
 class MetricsPanel : JPanel() {
     
     private val metricsExtractor = MetricsExtractor()
+    private val rulesEngine = RulesEngine()
+    private val ruleWarnings = mutableListOf<RuleMatch>()
+    private val ruleErrors = mutableListOf<RuleMatch>()
     
-    // Metrics displays
     private val fpsLabel = JLabel("--")
     private val minFpsLabel = JLabel("--")
     private val maxFpsLabel = JLabel("--")
     private val frameDropsLabel = JLabel("0")
     private val memoryLabel = JLabel("--")
     
-    // Recent metrics table
     private val metricsTable = JTable()
-    private val tableModel = DefaultTableModel(arrayOf("Type", "Value", "Time"), 0) {
-        override fun isCellEditable(row: Int, column: Int) = false
-    }
+    private val tableModel = DefaultTableModel(arrayOf("Type", "Value", "Time"), 0)
     
     private val warningsTextArea = JTextArea(5, 20)
     private val generateReportButton = JButton("Generate Report")
     private val exportJsonButton = JButton("Export JSON")
     
     private var currentDeviceId: String? = null
-    private var warnings = mutableListOf<String>()
-    
-    var onReportGenerated: ((String) -> Unit)? = null
     
     init {
         layout = BorderLayout(5, 5)
         border = BorderFactory.createTitledBorder("Performance Metrics")
         
-        // Top metrics panel
+        rulesEngine.loadDefaultRules()
+        
         val metricsGrid = JPanel(GridLayout(2, 5, 10, 5))
         metricsGrid.add(createMetricBox("FPS", fpsLabel))
         metricsGrid.add(createMetricBox("Min FPS", minFpsLabel))
@@ -48,22 +49,18 @@ class MetricsPanel : JPanel() {
         
         add(metricsGrid, BorderLayout.NORTH)
         
-        // Center: recent metrics table
         metricsTable.model = tableModel
         val scrollPane = JScrollPane(metricsTable)
         scrollPane.preferredSize = Dimension(0, 200)
         add(scrollPane, BorderLayout.CENTER)
         
-        // Bottom: warnings and export
         val bottomPanel = JPanel(BorderLayout(5, 5))
         
-        // Warnings area
         val warningsPanel = JPanel(BorderLayout())
         warningsPanel.border = BorderFactory.createTitledBorder("Warnings & Issues")
         warningsTextArea.isEditable = false
         warningsPanel.add(JScrollPane(warningsTextArea), BorderLayout.CENTER)
         
-        // Export buttons
         val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT, 5, 5))
         buttonPanel.add(generateReportButton)
         buttonPanel.add(exportJsonButton)
@@ -73,7 +70,6 @@ class MetricsPanel : JPanel() {
         
         add(bottomPanel, BorderLayout.SOUTH)
         
-        // Button actions
         generateReportButton.addActionListener { generateReport() }
         exportJsonButton.addActionListener { exportJson() }
     }
@@ -87,7 +83,7 @@ class MetricsPanel : JPanel() {
         return panel
     }
     
-    fun onDeviceConnected(device: DeviceInfo) {
+    fun onDeviceConnected(device: AndroidDevice) {
         currentDeviceId = device.id
         clearMetrics()
     }
@@ -99,7 +95,27 @@ class MetricsPanel : JPanel() {
     fun addLogEntry(entry: com.gameperf.plugin.core.LogEntry) {
         val metric = metricsExtractor.extract(entry)
         
+        // Evaluate rules against the log entry
+        val logMatches = rulesEngine.evaluate(entry)
+        for (match in logMatches) {
+            when (match.rule.severity) {
+                Severity.WARNING -> ruleWarnings.add(match)
+                Severity.ERROR -> ruleErrors.add(match)
+                else -> {}
+            }
+        }
+        
+        // Evaluate metric thresholds
         if (metric != null) {
+            val metricMatch = rulesEngine.evaluateMetric(metric)
+            if (metricMatch != null) {
+                when (metricMatch.rule.severity) {
+                    Severity.WARNING -> ruleWarnings.add(metricMatch)
+                    Severity.ERROR -> ruleErrors.add(metricMatch)
+                    else -> {}
+                }
+            }
+            
             SwingUtilities.invokeLater {
                 tableModel.addRow(arrayOf(
                     metric.type.name,
@@ -108,13 +124,15 @@ class MetricsPanel : JPanel() {
                         .format(java.util.Date(metric.timestamp))
                 ))
                 
-                // Keep only last 100 rows
                 while (tableModel.rowCount > 100) {
                     tableModel.removeRow(0)
                 }
                 
                 updateDisplay()
+                updateWarningsDisplay()
             }
+        } else if (logMatches.isNotEmpty()) {
+            SwingUtilities.invokeLater { updateWarningsDisplay() }
         }
     }
     
@@ -144,16 +162,24 @@ class MetricsPanel : JPanel() {
         }
     }
     
+    private fun updateWarningsDisplay() {
+        val sb = StringBuilder()
+        for (error in ruleErrors) {
+            sb.appendLine("[ERROR] ${error.rule.name}: ${error.value}")
+        }
+        for (warning in ruleWarnings) {
+            sb.appendLine("[WARN] ${warning.rule.name}: ${warning.value}")
+        }
+        warningsTextArea.text = sb.toString()
+    }
+    
     fun generateReport() {
         val deviceId = currentDeviceId ?: "Unknown"
         
-        val reportGenerator = ReportGenerator(metricsExtractor, emptyList(), emptyList())
+        val reportGenerator = ReportGenerator(metricsExtractor, ruleWarnings, ruleErrors)
         val report = reportGenerator.generate(deviceId)
         val markdown = reportGenerator.toMarkdown(report)
         
-        onReportGenerated?.invoke(markdown)
-        
-        // Show in dialog
         JOptionPane.showMessageDialog(
             this,
             JScrollPane(JTextArea(markdown, 20, 60)),
@@ -165,7 +191,7 @@ class MetricsPanel : JPanel() {
     private fun exportJson() {
         val deviceId = currentDeviceId ?: "Unknown"
         
-        val reportGenerator = ReportGenerator(metricsExtractor, emptyList(), emptyList())
+        val reportGenerator = ReportGenerator(metricsExtractor, ruleWarnings, ruleErrors)
         val report = reportGenerator.generate(deviceId)
         val json = reportGenerator.toJson(report)
         
@@ -177,6 +203,8 @@ class MetricsPanel : JPanel() {
     
     private fun clearMetrics() {
         metricsExtractor.clear()
+        ruleWarnings.clear()
+        ruleErrors.clear()
         tableModel.rowCount = 0
         fpsLabel.text = "--"
         minFpsLabel.text = "--"

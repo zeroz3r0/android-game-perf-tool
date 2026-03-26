@@ -19,15 +19,14 @@ class LogPanel : JPanel() {
     private var logcatReader: LogcatReader? = null
     private var isPaused = false
     private val logEntries = mutableListOf<LogEntry>()
-    private val tableModel = DefaultTableModel(arrayOf("Time", "Level", "Tag", "Message"), 0) {
-        override fun isCellEditable(row: Int, column: Int) = false
-    }
+    private val tableModel = DefaultTableModel(arrayOf("Time", "Level", "Tag", "Message"), 0)
+    
+    var onLogEntry: ((LogEntry) -> Unit)? = null
     
     init {
         layout = BorderLayout(5, 5)
         border = BorderFactory.createTitledBorder("Logcat")
         
-        // Table setup
         logTable.model = tableModel
         logTable.autoResizeMode = JTable.AUTO_RESIZE_OFF
         logTable.columnModel.getColumn(0).preferredWidth = 80
@@ -35,7 +34,6 @@ class LogPanel : JPanel() {
         logTable.columnModel.getColumn(2).preferredWidth = 100
         logTable.columnModel.getColumn(3).preferredWidth = 400
         
-        // Top filter panel
         val filterPanel = JPanel(FlowLayout(FlowLayout.LEFT, 5, 5))
         filterPanel.add(JLabel("Filter:"))
         filterPanel.add(filterField)
@@ -47,10 +45,8 @@ class LogPanel : JPanel() {
         add(filterPanel, BorderLayout.NORTH)
         add(logScrollPane, BorderLayout.CENTER)
         
-        // Button actions
         clearButton.addActionListener { clearLogs() }
         pauseButton.addActionListener { isPaused = !isPaused }
-        filterField.addActionListener { applyFilter() }
     }
     
     fun startCapture(deviceId: String) {
@@ -72,7 +68,9 @@ class LogPanel : JPanel() {
     private fun addLogEntry(entry: LogEntry) {
         logEntries.add(entry)
         
-        // Apply filter
+        // Feed entry to metrics extractor regardless of display filters
+        onLogEntry?.invoke(entry)
+        
         val filter = filterField.text
         val selectedLevel = levelFilter.selectedItem as? LogLevel
         
@@ -96,7 +94,6 @@ class LogPanel : JPanel() {
                 entry.message
             ))
             
-            // Auto-scroll to bottom
             val rowCount = tableModel.rowCount
             if (rowCount > 0) {
                 logTable.scrollRectToVisible(logTable.getCellRect(rowCount - 1, 0, true))
@@ -107,19 +104,6 @@ class LogPanel : JPanel() {
     private fun clearLogs() {
         logEntries.clear()
         tableModel.rowCount = 0
-    }
-    
-    private fun applyFilter() {
-        // Re-apply filter to existing entries
-        val filter = filterField.text
-        tableModel.rowCount = 0
-        
-        for (entry in logEntries) {
-            if (filter.isEmpty() || entry.message.contains(filter, ignoreCase = true) 
-                || entry.tag.contains(filter, ignoreCase = true)) {
-                addLogEntry(entry)
-            }
-        }
     }
     
     fun getLogEntries(): List<LogEntry> = logEntries.toList()

@@ -16,7 +16,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="GamePerformance" 
                     anchor="bottom" 
-                    factoryClass="com.gameperf.plugin.GamePerfToolWindowFactory"/>
+                    factoryClass="com.gameperf.plugin.ui.GamePerfToolWindowFactory"/>
     </extensions>
     
     <actions>

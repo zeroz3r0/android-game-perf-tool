@@ -1,9 +1,10 @@
 package com.gameperf.plugin.ui
 
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.w.ToolWindow
-import com.intellij.openapi.w.ToolWindowFactory
+import com.intellij.openapi.wm.ToolWindow
+import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
+import com.gameperf.plugin.GamePerfPanel
 
 class GamePerfToolWindowFactory : ToolWindowFactory {
     
